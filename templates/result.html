@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Результат анализа</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+    <h1>Результат анализа видео</h1>
+
+    <video class="video-player" controls>
+        <source src="{{ video_url }}" type="video/mp4">
+        Ваш браузер не поддерживает видео.
+    </video>
+
+    <h2>Видео: {{ input_video_name }}</h2>
+
+    <h2>Отчёт:</h2>
+
+    <ul>
+        <li>Всего обнаружено транспортных средств: <b>{{ total_tracks }}</b></li>
+        <li>Агрессивных транспортных средств: <b>{{ aggressive_tracks }}</b></li>
+        <li>Агрессивных событий: <b>{{ total_events }}</b></li>
+    </ul>
+
+    <p>
+        <a href="{{ report_url }}" download>
+            Скачать JSON-отчёт
+        </a>
+    </p>
+
+    <p>
+        <a href="/">
+            <button type="submit">Вернуться назад</button>
+        </a>
+    </p>
+</div>
+
+</body>
+</html>

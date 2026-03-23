@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Aggressive Driving Detection</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+    <h1>Анализ агрессивного вождения</h1>
+
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="video/*" required>
+        <button type="submit">Запустить анализ</button>
+    </form>
+
+    <p class="hint">Рекомендуемый формат видео: MP4 (H.264)</p>
+</div>
+</body>
+</html>
