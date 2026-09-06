@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# PyCharm
+.idea/
+
+# Uploaded and generated files
+uploads/*
+!uploads/.gitkeep
+
+results/*
+!results/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db

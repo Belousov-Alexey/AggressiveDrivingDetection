@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Request
+from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -46,7 +46,7 @@ def upload_video(request: Request, file: UploadFile = File(...)):
             "request": request,
             "video_url": f"/results/{uid}/{result['video']}",
             "report_url": f"/results/{uid}/{result['report']}",
-            "total_tracks": result["total_tracks"],  # ← НОВОЕ
+            "total_tracks": result["total_tracks"],
             "aggressive_tracks": result["aggressive_tracks"],
             "total_events": result["total_events"],
             "input_video_name": result["input_video_name"]
