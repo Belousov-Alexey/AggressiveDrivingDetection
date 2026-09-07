@@ -18,7 +18,7 @@ def process_video(input_path: str, output_dir: str) -> dict:
 
     # Инициализация
     print("Загрузка моделей...")
-    model = YOLO("yolov8m.pt")
+    model = YOLO("models/yolov8m.pt")
 
     tracker = sv.ByteTrack(
         track_activation_threshold=0.5,
