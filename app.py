@@ -5,20 +5,26 @@ from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 import shutil
 import uuid
-import os
-
+from pathlib import Path
 from main_pipeline import process_video
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+BASE_DIR = Path(__file__).resolve().parent
 
-UPLOAD_DIR = "uploads"
-RESULT_DIR = "results"
+UPLOAD_DIR = BASE_DIR / "uploads"
+RESULT_DIR = BASE_DIR / "results"
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(RESULT_DIR, exist_ok=True)
+app.mount(
+    "/static",
+    StaticFiles(directory=BASE_DIR / "static"),
+    name="static"
+)
+
+templates = Jinja2Templates(directory=BASE_DIR / "templates")
+
+UPLOAD_DIR.mkdir(exist_ok=True)
+RESULT_DIR.mkdir(exist_ok=True)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -30,10 +36,10 @@ def index(request: Request):
 def upload_video(request: Request, file: UploadFile = File(...)):
     uid = str(uuid.uuid4())
 
-    video_path = os.path.join(UPLOAD_DIR, f"{uid}.mp4")
-    result_path = os.path.join(RESULT_DIR, uid)
+    video_path = UPLOAD_DIR / f"{uid}.mp4"
+    result_path = RESULT_DIR / uid
 
-    os.makedirs(result_path, exist_ok=True)
+    result_path.mkdir(exist_ok=True)
 
     with open(video_path, "wb") as f:
         shutil.copyfileobj(file.file, f)
@@ -54,4 +60,4 @@ def upload_video(request: Request, file: UploadFile = File(...)):
     )
 
 
-app.mount("/results", StaticFiles(directory="results"), name="results")
+app.mount("/results", StaticFiles(directory=RESULT_DIR), name="results")

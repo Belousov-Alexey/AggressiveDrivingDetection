@@ -1,10 +1,13 @@
 import cv2
 import numpy as np
-import os
+from pathlib import Path
 from ultralytics import YOLO
 import supervision as sv
 from scipy.signal import savgol_filter
 import json
+
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "models" / "yolov8m.pt"
 
 # Настройки
 MIN_TRACK_LENGTH = 20
@@ -12,13 +15,13 @@ MIN_EVENTS_PER_TRACK = 1
 AGGRESSIVE_WINDOW = 10
 
 
-def process_video(input_path: str, output_dir: str) -> dict:
-    output_video = os.path.join(output_dir, "output.mp4")
-    report_path = os.path.join(output_dir, "report.json")
+def process_video(input_path: Path, output_dir: Path) -> dict:
+    output_video = output_dir / "output.mp4"
+    report_path = output_dir / "report.json"
 
     # Инициализация
     print("Загрузка моделей...")
-    model = YOLO("models/yolov8m.pt")
+    model = YOLO(MODEL_PATH)
 
     tracker = sv.ByteTrack(
         track_activation_threshold=0.5,
@@ -26,7 +29,7 @@ def process_video(input_path: str, output_dir: str) -> dict:
         minimum_matching_threshold=0.8
     )
 
-    cap = cv2.VideoCapture(input_path)
+    cap = cv2.VideoCapture(str(input_path))
     if not cap.isOpened():
         raise RuntimeError("Не удалось открыть видео")
 
@@ -36,10 +39,14 @@ def process_video(input_path: str, output_dir: str) -> dict:
 
     tracker.frame_rate = fps
 
-    temp_video = output_video.replace(".mp4", "_temp.mp4")
-    temp_out = cv2.VideoWriter(
-        temp_video, cv2.VideoWriter_fourcc(*"avc1"), fps, (width, height)
+    temp_video = output_video.with_name(
+        output_video.stem + "_temp" + output_video.suffix
     )
+    temp_out = cv2.VideoWriter(
+        str(temp_video), cv2.VideoWriter_fourcc(*"avc1"), fps, (width, height)
+    )
+    if not temp_out.isOpened():
+        raise RuntimeError("Не удалось открыть VideoWriter для временного видео.")
 
     trajectories = {}
     frame_idx = 0
@@ -96,10 +103,12 @@ def process_video(input_path: str, output_dir: str) -> dict:
     print(f"Агрессивных треков: {len(aggressive_tracks)} / {len(trajectories)}")
 
     # Второй проход: Аннотация
-    cap = cv2.VideoCapture(temp_video)
+    cap = cv2.VideoCapture(str(temp_video))
     out = cv2.VideoWriter(
-        output_video, cv2.VideoWriter_fourcc(*"avc1"), fps, (width, height)
+        str(output_video), cv2.VideoWriter_fourcc(*"avc1"), fps, (width, height)
     )
+    if not out.isOpened():
+        raise RuntimeError("Не удалось открыть VideoWriter для итогового видео.")
 
     frame_idx = 0
     while True:
@@ -129,7 +138,7 @@ def process_video(input_path: str, output_dir: str) -> dict:
 
     cap.release()
     out.release()
-    os.remove(temp_video)
+    temp_video.unlink()
 
     # Итог
     print("\nОбнаруженные случаи агрессивного вождения:")
@@ -143,7 +152,7 @@ def process_video(input_path: str, output_dir: str) -> dict:
     print(f"\nВсего агрессивных событий: {total_events}")
 
     report = {
-        "output_video": os.path.basename(input_path),
+        "output_video": input_path.name,
         "total_tracks": len(trajectories),
         "aggressive_tracks": len(aggressive_tracks),
         "total_events": total_events,
@@ -163,7 +172,7 @@ def process_video(input_path: str, output_dir: str) -> dict:
         "total_tracks": len(trajectories),
         "aggressive_tracks": len(aggressive_tracks),
         "total_events": total_events,
-        "input_video_name": os.path.basename(input_path)
+        "input_video_name": input_path.name
     }
 
 
@@ -189,21 +198,6 @@ def compute_kinematics(centers, fps):
     a = np.diff(v, axis=0) / dt
     j = np.diff(a, axis=0) / dt
     return v, a, j
-
-
-def compute_lateral_acceleration(v, a):
-    min_len = min(len(v), len(a))
-    v = v[:min_len]
-    a = a[:min_len]
-
-    v_norm = np.linalg.norm(v, axis=1, keepdims=True) + 1e-6
-    v_dir = v / v_norm
-
-    v_dir_3d = np.hstack([v_dir, np.zeros((len(v_dir), 1))])
-    a_3d = np.hstack([a, np.zeros((len(a), 1))])
-
-    lateral = np.abs(np.cross(v_dir_3d, a_3d)[:, 2])
-    return lateral
 
 
 def detect_aggressive_events(v, fps):
