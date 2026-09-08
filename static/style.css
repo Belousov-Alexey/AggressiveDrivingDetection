@@ -38,3 +38,12 @@ button:hover {
     height: auto;
     border-radius: 6px;
 }
+
+.test-clips {
+    margin-top: 30px;
+}
+
+.test-clips form {
+    display: inline-block;
+    margin: 5px;
+}

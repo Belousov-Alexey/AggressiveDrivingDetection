@@ -5,6 +5,7 @@
     <title>Aggressive Driving Detection</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
 <div class="container">
     <h1>Анализ агрессивного вождения</h1>
@@ -15,6 +16,18 @@
     </form>
 
     <p class="hint">Рекомендуемый формат видео: MP4 (H.264)</p>
+
+<div class="test-clips">
+    <h2>Тестовые клипы</h2>
+    <p>Выберите готовый видеоролик для проверки работы детектора:</p>
+
+    {% for filename, title in test_clips.items() %}
+        <form action="/test/{{ filename }}" method="post">
+            <button type="submit">{{ title }}</button>
+        </form>
+    {% endfor %}
+</div>
+
 </div>
 </body>
 </html>
