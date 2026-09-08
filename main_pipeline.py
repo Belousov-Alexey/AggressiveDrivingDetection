@@ -5,14 +5,26 @@ from ultralytics import YOLO
 import supervision as sv
 from scipy.signal import savgol_filter
 import json
-
-BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / "models" / "yolov8m.pt"
-
-# Настройки
-MIN_TRACK_LENGTH = 20
-MIN_EVENTS_PER_TRACK = 1
-AGGRESSIVE_WINDOW = 10
+from config import (
+    MODEL_PATH,
+    MIN_TRACK_LENGTH,
+    MIN_EVENTS_PER_TRACK,
+    AGGRESSIVE_WINDOW,
+    ANGLE_THRESHOLD,
+    CURV_THRESHOLD,
+    SPEED_CHANGE_THRESHOLD,
+    DECEL_THRESHOLD,
+    TTC_THRESHOLD,
+    MIN_SPEED,
+    EVENT_WINDOW_SECONDS,
+    MIN_CONSECUTIVE_SECONDS,
+    DETECTION_CONFIDENCE,
+    DETECTION_CLASSES,
+    TRACK_ACTIVATION_THRESHOLD,
+    LOST_TRACK_BUFFER,
+    MINIMUM_MATCHING_THRESHOLD,
+    SCORE_THRESHOLD
+)
 
 
 def process_video(input_path: Path, output_dir: Path) -> dict:
@@ -24,9 +36,9 @@ def process_video(input_path: Path, output_dir: Path) -> dict:
     model = YOLO(MODEL_PATH)
 
     tracker = sv.ByteTrack(
-        track_activation_threshold=0.5,
-        lost_track_buffer=30,
-        minimum_matching_threshold=0.8
+        track_activation_threshold=TRACK_ACTIVATION_THRESHOLD,
+        lost_track_buffer=LOST_TRACK_BUFFER,
+        minimum_matching_threshold=MINIMUM_MATCHING_THRESHOLD
     )
 
     cap = cv2.VideoCapture(str(input_path))
@@ -58,7 +70,12 @@ def process_video(input_path: Path, output_dir: Path) -> dict:
         if not ret:
             break
 
-        result = model(frame, classes=[2, 3, 5, 7], conf=0.5, verbose=False)[0]
+        result = model(
+            frame,
+            classes=DETECTION_CLASSES,
+            conf=DETECTION_CONFIDENCE,
+            verbose=False
+        )[0]
         detections = sv.Detections.from_ultralytics(result)
         tracks = tracker.update_with_detections(detections)
 
@@ -203,15 +220,8 @@ def compute_kinematics(centers, fps):
 def detect_aggressive_events(v, fps):
 
     # Параметры
-    angle_threshold = 8.0
-    curv_threshold = 250.0
-    speed_change_threshold = 0.4
-    decel_threshold = 450.0
-    ttc_threshold = 0.5
-    window = max(1, int(0.2 * fps))
-    min_consecutive = max(3, int(0.4 * fps))
-    score_threshold = 2
-    min_speed = 40.0
+    window = max(1, int(EVENT_WINDOW_SECONDS * fps))
+    min_consecutive = max(3, int(MIN_CONSECUTIVE_SECONDS * fps))
 
     # Базовые величины
     speed = np.linalg.norm(v, axis=1) + 1e-6
@@ -234,7 +244,7 @@ def detect_aggressive_events(v, fps):
     # Изменение скорости
     speed_change = np.abs(np.diff(speed)) / speed[:-1]
     speed_change = speed_change[:len(angles)]
-    valid = speed[:-window] > min_speed
+    valid = speed[:-window] > MIN_SPEED
 
     # Резкое торможение
     decel = -np.diff(speed) * fps
@@ -253,22 +263,22 @@ def detect_aggressive_events(v, fps):
 
         score = 0
 
-        if angles[i] > angle_threshold:
+        if angles[i] > ANGLE_THRESHOLD:
             score += 2
 
-        if curvature[i] > curv_threshold:
+        if curvature[i] > CURV_THRESHOLD:
             score += 1
 
-        if speed_change[i] > speed_change_threshold:
+        if speed_change[i] > SPEED_CHANGE_THRESHOLD:
             score += 1
 
-        if decel[i] > decel_threshold:
+        if decel[i] > DECEL_THRESHOLD:
             score += 2
 
-        if ttc[i] < ttc_threshold:
+        if ttc[i] < TTC_THRESHOLD:
             score += 1
 
-        flags.append(score >= score_threshold)
+        flags.append(score >= SCORE_THRESHOLD)
 
     # Поиск устойчивых событий
     events = []
